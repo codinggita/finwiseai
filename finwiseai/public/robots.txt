@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://finwiseai-1-yvg4.vercel.app/
+
+User-agent: *
+Disallow: /

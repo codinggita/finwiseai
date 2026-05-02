@@ -63,8 +63,9 @@ router.post('/ai-advice', async (req, res) => {
     const { uid } = req.body;
     if (!uid) return res.status(400).json({ error: 'uid is required' });
 
-    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'your_groq_api_key_here') {
-      return res.status(500).json({ error: 'Groq API key not configured.' });
+    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'your_groq_api_key_here' || process.env.GROQ_API_KEY === '') {
+      console.warn('GROQ_API_KEY is not configured.');
+      return res.status(200).json({ response: "AI advice is currently unavailable. Please configure your GROQ_API_KEY in the backend environment variables." });
     }
 
     const debts = await Debt.find({ userId: uid });
@@ -72,9 +73,16 @@ router.post('/ai-advice', async (req, res) => {
       return res.json({ response: "🎉 **Congratulations!** You have no debts recorded. Keep up the great financial discipline!" });
     }
 
-    const savingsProfile = await SavingsGoal.findOne({ userId: uid });
-    const monthlySalary = savingsProfile?.monthlySalary || 0;
-    const monthlySavings = savingsProfile?.monthlySavings || 0;
+    // Try to fetch profile but don't fail if not found
+    let monthlySalary = 0;
+    let monthlySavings = 0;
+    try {
+      const savingsProfile = await SavingsGoal.findOne({ userId: uid });
+      monthlySalary = savingsProfile?.monthlySalary || 0;
+      monthlySavings = savingsProfile?.monthlySavings || 0;
+    } catch (profileErr) {
+      console.warn('Optional profile fetch failed:', profileErr);
+    }
 
     const totalDebt = debts.reduce((s, d) => s + d.remainingAmount, 0);
     const totalEMI = debts.reduce((s, d) => s + d.emiAmount, 0);

@@ -25,13 +25,22 @@ app.use((req, res, next) => {
 });
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', process.env.FRONTEND_URL];
-    if (!origin || allowedOrigins.includes(origin) || (process.env.FRONTEND_URL && origin.startsWith(process.env.FRONTEND_URL))) {
+    // Logging origin for debugging in deployment
+    if (origin) console.log(`Incoming request from origin: ${origin}`);
+    
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(o => origin.startsWith(o)) || origin.endsWith('.vercel.app') || origin.endsWith('.onrender.com')) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`CORS blocked for origin: ${origin}`);
+      callback(null, false); // Deny but don't throw error to avoid 500
     }
   },
   credentials: true,
